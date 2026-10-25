@@ -21,14 +21,21 @@
     "EUNA.DE",
     "SXLP.MI",
     "JEPI.MI",
-    "SMH.MI"
+    "SMH.MI",
+    "KOR.MI",
+    "FLXK.MI"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",
     "smtp_port": 465,
     "to": "tua-email@example.com"
   },
+  "whatsapp": {
+    "to": "120363428742063440@g.us"
+  },
   "urgent_tolerance_pct": 0.3,
+  "alert_cooldown_pct": 0.5,
+  "move_alert_pct": 4.0,
   "max_alerts_per_day": 10,
   "check_interval_minutes": 30
 }

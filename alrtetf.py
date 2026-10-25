@@ -44,16 +44,26 @@ STATE_FILE = BASE / "state.json"
 ENV_FILE = BASE / ".env"
 OUTBOX_DIR = BASE / "outbox"
 
+# WhatsApp via wacli (stesso canale di MfMonitor)
+WA_CLI = r"C:\Users\emili\Tools\wacli\wacli.exe"
+WA_GROUP_DEFAULT = "120363428742063440@g.us"
+
 DEFAULT_CONFIG = {
     "etfs": ["SWDA.MI", "VWRL.MI", "USDV.MI", "VWCE.MI", "SEGA.MI", "SGLD.MI",
              "IBZL.MI", "EIMI.MI", "EQQQ.MI", "IUSN.DE", "ZPRV.DE", "AGGH.MI",
-             "SEME.MI", "AVWC.DE", "AIGA.MI", "AINF.MI", "DFND.MI"],
+             "SEME.MI", "AVWC.DE", "AIGA.MI", "AINF.MI", "DFND.MI", "VUAA.MI",
+             "EUNA.DE", "SXLP.MI", "JEPI.MI", "SMH.MI", "KOR.MI", "FLXK.MI"],
     "email": {
         "smtp_host": "smtp.gmail.com",
         "smtp_port": 465,
         "to": "tua-email@example.com"
     },
+    "whatsapp": {
+        "to": WA_GROUP_DEFAULT
+    },
     "urgent_tolerance_pct": 0.3,
+    "alert_cooldown_pct": 0.5,
+    "move_alert_pct": 4.0,
     "max_alerts_per_day": 10,
     "check_interval_minutes": 30,
 }
@@ -216,7 +226,7 @@ def analyze(ticker):
     }
 
 
-def evaluate(a, tol_pct):
+def evaluate(a, tol_pct, move_pct=4.0):
     """Restituisce l'elenco dei segnali scattati.
 
     L'alert urgente usa il minimo intraday di giornata (day_low), non solo il
@@ -236,6 +246,9 @@ def evaluate(a, tol_pct):
         signals.append(("entry", "zona d'ingresso identificata dall'analisi tecnica"))
     if a["price"] >= a["sell"][0] / tol:
         signals.append(("sell", "zona di vendita identificata dall'analisi tecnica"))
+    if abs(a.get("change_pct", 0.0)) >= move_pct:
+        direction = "rialzo" if a["change_pct"] >= 0 else "ribasso"
+        signals.append(("move", f"movimento giornaliero >= {move_pct:g}% ({a['change_pct']:+.2f}%, {direction})"))
     return signals
 
 
@@ -419,6 +432,43 @@ def deliver(cfg, ticker, kind, subject, body):
     return ("queued", queue_alert(cfg, ticker, kind, subject, body))
 
 
+def get_wa_group(cfg):
+    return (cfg.get("whatsapp", {}) or {}).get("to") or WA_GROUP_DEFAULT
+
+
+def send_wa(text, group=None):
+    """Invia un messaggio WhatsApp tramite wacli (stesso canale di MfMonitor)."""
+    import subprocess
+    grp = group or WA_GROUP_DEFAULT
+    try:
+        # Windows CreateProcess ha un limite ~32767 caratteri per l'argv:
+        # messaggi troppo lunghi fanno fallire wacli con WinError 206.
+        CHUNK = 28000
+        if len(text) <= CHUNK:
+            chunks = [text]
+        else:
+            chunks = []
+            buf = ""
+            for line in text.splitlines(keepends=True):
+                if len(buf) + len(line) > CHUNK and buf:
+                    chunks.append(buf)
+                    buf = line
+                else:
+                    buf += line
+            if buf:
+                chunks.append(buf)
+        ok_all = True
+        for c in chunks:
+            res = subprocess.run([WA_CLI, "send", "text", "--to", grp, "--message", c],
+                                 capture_output=True, text=True, timeout=90)
+            if "Sent" not in (res.stdout + res.stderr):
+                ok_all = False
+        return ok_all
+    except Exception as e:
+        print(f"[WA errore] {e}")
+        return False
+
+
 def check_and_notify(cfg, tickers, state, json_out=False):
     """Controlla gli ETF e accoda/invia gli alert.
 
@@ -427,6 +477,8 @@ def check_and_notify(cfg, tickers, state, json_out=False):
     today = datetime.now().strftime("%Y-%m-%d")
     max_per_day = int(cfg.get("max_alerts_per_day", 10))
     fired = []
+    wa_messages = []
+    wa_group = get_wa_group(cfg)
     for t in tickers:
         try:
             a = analyze(t)
@@ -434,7 +486,7 @@ def check_and_notify(cfg, tickers, state, json_out=False):
             print(f"[{t}] errore: {ex}")
             fired.append({"ticker": t, "error": str(ex)})
             continue
-        signals = evaluate(a, cfg.get("urgent_tolerance_pct", 0.3))
+        signals = evaluate(a, cfg.get("urgent_tolerance_pct", 0.3), cfg.get("move_alert_pct", 4.0))
         kinds = {k for k, _ in signals}
         # Se acquisto e vendita scattano insieme le zone si sovrappongono
         # (supporto e resistenza troppo vicini): in quel caso prevale l'acquisto.
@@ -448,19 +500,43 @@ def check_and_notify(cfg, tickers, state, json_out=False):
             "urgent": "ACQUISTO URGENTE {t}: {r}",
             "entry": "{t} in zona d'ingresso",
             "sell": "{t} in zona di vendita",
+            "move": "{t} movimento giornaliero >= soglia",
         }
         NOTES = {
             "urgent": "Il prezzo ha raggiunto il minimo di riferimento: valutare l'ingresso con priorità.",
             "entry": "Il prezzo è entrato nella zona di acquisto calcolata dall'analisi tecnica.",
             "sell": "Il prezzo è entrato nella zona di vendita calcolata dall'analisi tecnica.",
+            "move": "Variazione di seduta superiore alla soglia configurata.",
         }
 
-        for kind in ("urgent", "entry", "sell"):
+        for kind in ("urgent", "entry", "sell", "move"):
             if kind not in kinds:
                 continue
             key = f"{t}|{kind}"
             if alert_count_today(state, key, today) >= max_per_day:
                 continue
+            cooldown_pct = float(cfg.get("alert_cooldown_pct", 0.5))
+            rec = state.get(key)
+            last_price = None
+            if isinstance(rec, dict) and rec.get("date") == today:
+                last_price = rec.get("last_price")
+            ref_price = a["price"]
+            if kind in ("urgent", "entry"):
+                if a.get("day_low") is not None:
+                    ref_price = min(a["price"], a["day_low"])
+            if last_price is not None:
+                if kind in ("urgent", "entry"):
+                    if ref_price > last_price * (1 - cooldown_pct / 100.0):
+                        print(f"   · cooldown: nessun nuovo movimento ({ref_price:.2f} vs {last_price:.2f})")
+                        continue
+                elif kind == "move":
+                    if abs(ref_price / last_price - 1) * 100 < cooldown_pct:
+                        print(f"   · cooldown: nessun nuovo movimento ({ref_price:.2f} vs {last_price:.2f})")
+                        continue
+                else:
+                    if ref_price < last_price * (1 + cooldown_pct / 100.0):
+                        print(f"   · cooldown: nessun nuovo movimento ({ref_price:.2f} vs {last_price:.2f})")
+                        continue
             reasons = "; ".join(r for k, r in signals if k == kind)
             if not reasons:
                 continue
@@ -472,19 +548,26 @@ def check_and_notify(cfg, tickers, state, json_out=False):
             body = f"{note}\nMotivo: {reasons}\n\n{details(a)}"
             try:
                 mode, aid = deliver(cfg, t, kind, subject, body)
-                n = bump_alert_count(state, key, today)
+                n = alert_count_today(state, key, today) + 1
+                state[key] = {"date": today, "count": n, "last_price": ref_price}
                 save_state(state)
                 fired.append({"ticker": t, "kind": kind, "subject": subject,
                               "status": mode, "alert_id": aid, "n_today": n})
                 print(f"   -> alert '{kind}' {mode}" + (f" (id {aid})" if aid else "")
                       + f" [{n}/{max_per_day} oggi]")
+                wa_messages.append(f"{subject}\n{body}")
             except Exception as ex:
                 fired.append({"ticker": t, "kind": kind, "status": f"errore: {ex}"})
                 print(f"   ! invio alert fallito: {ex}")
             if kind == "urgent":
-                bump_alert_count(state, f"{t}|entry", today)  # evita l'alert di ingresso doppio
+                ek = f"{t}|entry"
+                n_entry = alert_count_today(state, ek, today) + 1
+                state[ek] = {"date": today, "count": n_entry, "last_price": ref_price}
                 save_state(state)
                 break
+    if wa_messages:
+        wa_ok = send_wa("\n\n".join(wa_messages), group=wa_group)
+        print(f"WhatsApp: {'inviato' if wa_ok else 'FALLITO'} ({len(wa_messages)} alert) -> {wa_group}")
     if json_out:
         print(json.dumps(fired, indent=2, ensure_ascii=False))
     return fired
@@ -493,9 +576,10 @@ def check_and_notify(cfg, tickers, state, json_out=False):
 # ---------------------------------------------------------------- main ------
 def main():
     load_env()
-    p = argparse.ArgumentParser(description="AlrtEtf - monitor ETF con alert email")
+    p = argparse.ArgumentParser(description="AlrtEtf - monitor ETF con alert WhatsApp + email")
     p.add_argument("cmd", choices=["analyze", "once", "watch", "outbox", "mark-sent",
-                                   "test-alert", "test-email", "add", "remove", "list"])
+                                   "test-alert", "test-email", "add", "remove", "list",
+                                   "doctor"])
     p.add_argument("tickers", nargs="*")
     p.add_argument("--json", action="store_true", help="output in formato JSON")
     args = p.parse_args()
@@ -505,6 +589,24 @@ def main():
         print("ETF configurati:")
         for t in cfg.get("etfs", []):
             print(f"  - {t}")
+        return
+
+    if args.cmd == "doctor":
+        import subprocess
+        print("AlrtEtf doctor")
+        print(f"  BASE: {BASE}")
+        print(f"  config: {CONFIG_FILE.exists()}")
+        cfg = load_config()
+        print(f"  ETF: {len(cfg.get('etfs', []))}")
+        print(f"  WA gruppo: {get_wa_group(cfg)}")
+        print("  wacli:")
+        try:
+            res = subprocess.run([WA_CLI, "doctor"], capture_output=True, text=True, timeout=60)
+            out = res.stdout + res.stderr
+            print("   ", "✓ autenticato" if "AUTHENTICATED     true" in out else "✗ non autenticato")
+            print("   ", "connesso" if "CONNECTED         true" in out else "disconnesso (si riconnette all'invio)")
+        except Exception as ex:
+            print(f"   ✗ {ex}")
         return
 
     if args.cmd == "outbox":
