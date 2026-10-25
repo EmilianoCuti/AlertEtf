@@ -1,0 +1,3 @@
+{
+  "_nota": "File di stato per la dedupe degli alert: non va versionato. Copiare in state.json oppure lasciare che lo script lo crei automaticamente al primo avvio."
+}
