@@ -52,7 +52,12 @@ DEFAULT_CONFIG = {
     "etfs": ["SWDA.MI", "VWRL.MI", "USDV.MI", "VWCE.MI", "SEGA.MI", "SGLD.MI",
              "IBZL.MI", "EIMI.MI", "EQQQ.MI", "IUSN.DE", "ZPRV.DE", "AGGH.MI",
              "SEME.MI", "AVWC.DE", "AIGA.MI", "AINF.MI", "DFND.MI", "VUAA.MI",
-             "EUNA.DE", "SXLP.MI", "JEPI.MI", "SMH.MI", "KOR.MI", "FLXK.MI"],
+             "EUNA.DE", "SXLP.MI", "JEPI.MI", "SMH.MI", "KOR.MI", "FLXK.MI",
+             "EUCL.DE", "QDVE.DE", "QDVG.DE", "DBMF.PA", "SXLE.MI", "2B70.DE",
+             "BUG.MI", "QNTM.MI", "IS20.DE", "IB1T.DE", "IUSS.DE", "ETHW.AS",
+             "BRNT.L", "KOID.MI", "DIVW.MI", "PCOM.MI", "EEAS.DE", "BTC.MI",
+             "NUCL.MI", "2B7A.DE", "COPA.MI", "4GLD.DE", "SBIO.MI", "ASWC.DE",
+             "VEUR.MI", "CSSPX.MI", "SJPA.MI", "NDIA.MI", "IEMB.MI", "IHYG.MI"],
     "email": {
         "smtp_host": "smtp.gmail.com",
         "smtp_port": 465,
@@ -239,16 +244,16 @@ def evaluate(a, tol_pct, move_pct=4.0):
         low = min(low, a["day_low"])
     signals = []
     if a["ytd_prev"] is not None and low <= a["ytd_prev"] * tol:
-        signals.append(("urgent", "minimo intraday dall'inizio dell'anno"))
+        signals.append(("urgent", "raggiungimento del minimo da inizio anno (YTD)"))
     if a["six_prev"] is not None and low <= a["six_prev"] * tol:
-        signals.append(("urgent", "minimo intraday degli ultimi 6 mesi"))
+        signals.append(("urgent", "raggiungimento del minimo degli ultimi 6 mesi"))
     if a["price"] <= a["buy"][1] * tol:
-        signals.append(("entry", "zona d'ingresso identificata dall'analisi tecnica"))
+        signals.append(("entry", "raggiungimento della zona d'ingresso tecnica"))
     if a["price"] >= a["sell"][0] / tol:
-        signals.append(("sell", "zona di vendita identificata dall'analisi tecnica"))
+        signals.append(("sell", "raggiungimento della zona di vendita"))
     if abs(a.get("change_pct", 0.0)) >= move_pct:
         direction = "rialzo" if a["change_pct"] >= 0 else "ribasso"
-        signals.append(("move", f"movimento giornaliero >= {move_pct:g}% ({a['change_pct']:+.2f}%, {direction})"))
+        signals.append(("move", f"variazione percentuale giornaliera >= {move_pct:g}% ({a['change_pct']:+.2f}%, {direction})"))
     return signals
 
 
@@ -497,16 +502,16 @@ def check_and_notify(cfg, tickers, state, json_out=False):
               + ("  (zone sovrapposte: prevale l'acquisto)" if overlap else ""))
 
         SUBJECTS = {
-            "urgent": "ACQUISTO URGENTE {t}: {r}",
-            "entry": "{t} in zona d'ingresso",
-            "sell": "{t} in zona di vendita",
-            "move": "{t} movimento giornaliero >= soglia",
+            "urgent": "ACQUISTO URGENTE {t}: Alert per raggiungimento dei minimi",
+            "entry": "ALERT {t}: raggiungimento della zona d'ingresso tecnica",
+            "sell": "ALERT {t}: raggiungimento della zona di vendita",
+            "move": "ALERT {t}: variazione percentuale giornaliera",
         }
         NOTES = {
-            "urgent": "Il prezzo ha raggiunto il minimo di riferimento: valutare l'ingresso con priorità.",
-            "entry": "Il prezzo è entrato nella zona di acquisto calcolata dall'analisi tecnica.",
-            "sell": "Il prezzo è entrato nella zona di vendita calcolata dall'analisi tecnica.",
-            "move": "Variazione di seduta superiore alla soglia configurata.",
+            "urgent": "Il prezzo ha raggiunto il minimo di riferimento: valutare l'ingresso con priorità (Acquisto urgente).",
+            "entry": "Il prezzo è entrato nella zona di acquisto calcolata dall'analisi tecnica (Alert per raggiungimento della zona d'ingresso tecnica).",
+            "sell": "Il prezzo è entrato nella zona di vendita calcolata dall'analisi tecnica (Alert per raggiungimento della zona di vendita).",
+            "move": "Variazione di seduta superiore alla soglia configurata (Alert per variazione percentuale).",
         }
 
         for kind in ("urgent", "entry", "sell", "move"):
