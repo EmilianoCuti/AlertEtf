@@ -57,7 +57,7 @@ DEFAULT_CONFIG = {
              "BUG.MI", "QNTM.MI", "IS20.DE", "IB1T.DE", "IUSS.DE", "ETHW.AS",
              "BRNT.L", "KOID.MI", "DIVW.MI", "PCOM.MI", "EEAS.DE", "BTC.MI",
              "NUCL.MI", "2B7A.DE", "COPA.MI", "4GLD.DE", "SBIO.MI", "ASWC.DE",
-             "VEUR.MI", "CSSPX.MI", "SJPA.MI", "NDIA.MI", "IEMB.MI", "IHYG.MI"],
+             "VEUR.MI", "CSSPX.MI", "SJPA.MI", "NDIA.MI", "IEMB.MI", "IHYG.MI", "XFVT.MI", "GRC.MI", "IBCJ.DE", "ESPY.MI"],
     "email": {
         "smtp_host": "smtp.gmail.com",
         "smtp_port": 465,

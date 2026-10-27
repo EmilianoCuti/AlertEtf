@@ -53,7 +53,11 @@
     "SJPA.MI",
     "NDIA.MI",
     "IEMB.MI",
-    "IHYG.MI"
+    "IHYG.MI",
+    "XFVT.MI",
+    "GRC.MI",
+    "IBCJ.DE",
+    "ESPY.MI"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",
