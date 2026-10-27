@@ -482,7 +482,8 @@ def check_and_notify(cfg, tickers, state, json_out=False):
     today = datetime.now().strftime("%Y-%m-%d")
     max_per_day = int(cfg.get("max_alerts_per_day", 10))
     fired = []
-    wa_messages = []
+    wa_todo = []
+    ticker_data = {}
     wa_group = get_wa_group(cfg)
     for t in tickers:
         try:
@@ -498,6 +499,7 @@ def check_and_notify(cfg, tickers, state, json_out=False):
         overlap = {"entry", "sell"} <= kinds
         if overlap:
             kinds.discard("sell")
+        ticker_data[t] = {"a": a, "signals": signals, "kinds": kinds, "sent": []}
         print(f"[{datetime.now():%H:%M:%S}] {t} {fmt(a['price'])}  segnali: {sorted(kinds) or '-'}"
               + ("  (zone sovrapposte: prevale l'acquisto)" if overlap else ""))
 
@@ -514,6 +516,11 @@ def check_and_notify(cfg, tickers, state, json_out=False):
             "move": "Variazione di seduta superiore alla soglia configurata (Alert per variazione percentuale).",
         }
 
+        _PRIORITY = {"urgent": 0, "entry": 1, "move": 2, "sell": 3}
+        _ZONE_LABEL = {"urgent": "ZONA: ACQUISTO URGENTE",
+                       "entry": "ZONA: INGRESSO TECNICO",
+                       "move": "ZONA: VARIAZIONE GIORNALIERA",
+                       "sell": "ZONA: VENDITA"}
         for kind in ("urgent", "entry", "sell", "move"):
             if kind not in kinds:
                 continue
@@ -550,7 +557,7 @@ def check_and_notify(cfg, tickers, state, json_out=False):
             if overlap and kind == "entry":
                 note += (" Nota: in questa fase la zona di acquisto e quella di vendita "
                          "si sovrappongono (supporto e resistenza molto vicini).")
-            body = f"{note}\nMotivo: {reasons}\n\n{details(a)}"
+            body = f"{_ZONE_LABEL.get(kind, '')}\n\n{note}\nMotivo: {reasons}\n\n{details(a)}"
             try:
                 mode, aid = deliver(cfg, t, kind, subject, body)
                 n = alert_count_today(state, key, today) + 1
@@ -560,7 +567,7 @@ def check_and_notify(cfg, tickers, state, json_out=False):
                               "status": mode, "alert_id": aid, "n_today": n})
                 print(f"   -> alert '{kind}' {mode}" + (f" (id {aid})" if aid else "")
                       + f" [{n}/{max_per_day} oggi]")
-                wa_messages.append(f"{subject}\n{body}")
+                ticker_data[t]["sent"].append(kind)
             except Exception as ex:
                 fired.append({"ticker": t, "kind": kind, "status": f"errore: {ex}"})
                 print(f"   ! invio alert fallito: {ex}")
@@ -570,9 +577,46 @@ def check_and_notify(cfg, tickers, state, json_out=False):
                 state[ek] = {"date": today, "count": n_entry, "last_price": ref_price}
                 save_state(state)
                 break
-    if wa_messages:
-        wa_ok = send_wa("\n\n".join(wa_messages), group=wa_group)
-        print(f"WhatsApp: {'inviato' if wa_ok else 'FALLITO'} ({len(wa_messages)} alert) -> {wa_group}")
+    SUBJECTS = {
+        "urgent": "ACQUISTO URGENTE {t}: Alert per raggiungimento dei minimi",
+        "entry": "ALERT {t}: raggiungimento della zona d'ingresso tecnica",
+        "sell": "ALERT {t}: raggiungimento della zona di vendita",
+        "move": "ALERT {t}: variazione percentuale giornaliera",
+    }
+    NOTES = {
+        "urgent": "Il prezzo ha raggiunto il minimo di riferimento: valutare l'ingresso con priorità (Acquisto urgente).",
+        "entry": "Il prezzo è entrato nella zona di acquisto calcolata dall'analisi tecnica (Alert per raggiungimento della zona d'ingresso tecnica).",
+        "sell": "Il prezzo è entrato nella zona di vendita calcolata dall'analisi tecnica (Alert per raggiungimento della zona di vendita).",
+        "move": "Variazione di seduta superiore alla soglia configurata (Alert per variazione percentuale).",
+    }
+    _PRIORITY = {"urgent": 0, "entry": 1, "move": 2, "sell": 3}
+    _ZONE_LABEL = {"urgent": "ZONA: ACQUISTO URGENTE",
+                   "entry": "ZONA: INGRESSO TECNICO",
+                   "move": "ZONA: VARIAZIONE GIORNALIERA",
+                   "sell": "ZONA: VENDITA"}
+    for t, info in ticker_data.items():
+        sent = info.get("sent", [])
+        if not sent:
+            continue
+        a = info["a"]
+        signals = info["signals"]
+        ordered = sorted(sent, key=lambda k: _PRIORITY.get(k, 9))
+        zone = _ZONE_LABEL[ordered[0]]
+        lines = [f"{t} — {zone}", ""]
+        for kind in ordered:
+            lines.append(SUBJECTS[kind].format(t=t))
+            lines.append(NOTES[kind])
+            reasons = "; ".join(r for k, r in signals if k == kind)
+            lines.append(f"Motivo: {reasons}")
+            lines.append("")
+        lines.append(details(a))
+        wa_todo.append("\n".join(lines))
+
+    if wa_todo:
+        for msg in wa_todo:
+            wa_ok = send_wa(msg, group=wa_group)
+            print(f"WhatsApp: {'inviato' if wa_ok else 'FALLITO'} -> {wa_group}")
+        print(f"Totale messaggi WhatsApp: {len(wa_todo)}")
     if json_out:
         print(json.dumps(fired, indent=2, ensure_ascii=False))
     return fired
