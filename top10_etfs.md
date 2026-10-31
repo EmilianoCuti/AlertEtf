@@ -14,6 +14,7 @@ Cap massimo: 10 titoli. Aggiornata su richiesta dell'utente.
 | 7 | EMLC.MI | VanEck J.P. Morgan EM Local Currency Bond UCITS ETF A USD | 2026-10-31 |
 | 8 | WRDSC.MI | UBS MSCI World Small Cap UCITS ETF USD Acc | 2026-10-31 |
 | 9 | COPA.MI | WisdomTree Copper | 2026-10-31 |
+| 10 | IQSA.MI | Invesco Global Active ESG Equity UCITS ETF USD Acc | 2026-10-31 |
 
 ## Note
 - CAPE.MI: trend rialzista, RSI 75 (ipercomprato), zona acquisto 652,93-656,15 EUR, zona vendita 684,95-688,17 EUR. Min YTD 557,40 (07/01/2026), min 6M 629,10 (02/10/2026).
@@ -25,3 +26,4 @@ Cap massimo: 10 titoli. Aggiornata su richiesta dell'utente.
 - EMLC.MI: trend rialzista, RSI 47 (neutro), zona acquisto 60,75-61,09 EUR, zona vendita 61,13-61,47 EUR. Min YTD 56,50 (26/03/2026), min 6M 58,42 (21/05/2026).
 - WRDSC.MI: storico insufficiente (<210 candele, 105 sedute): analisi tecnica non disponibile. Min YTD/6M 5,569 (30/07/2026), prezzo 5,717. Monitorato senza segnali tecnici finché non accumula storia.
 - COPA.MI: trend rialzista, RSI 46 (neutro), zona acquisto 48,93-49,50 EUR, zona vendita 49,34-49,91 EUR. Min YTD 39,76 (23/03/2026), min 6M 43,00 (04/05/2026).
+- IQSA.MI: trend rialzista, RSI 41 (neutro), zona acquisto 96,07-96,76 EUR, zona vendita 96,12-96,81 EUR. Min YTD 79,59 (23/03/2026), min 6M 87,25 (04/05/2026). Zone acquisto/vendita sovrapposte (supporto e resistenza molto vicini).

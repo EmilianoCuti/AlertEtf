@@ -82,7 +82,8 @@
     "EWSA.AS",
     "WRDSC.MI",
     "CCUSAS.MI",
-    "ETLF.DE"
+    "ETLF.DE",
+    "IQSA.MI"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",
