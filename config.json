@@ -75,7 +75,11 @@
     "ERNE.MI",
     "EPRA.MI",
     "SPYL.DE",
-    "ITWN.MI"
+    "ITWN.MI",
+    "EMLC.MI",
+    "IEAC.MI",
+    "ITPS.MI",
+    "EWSA.AS"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",
