@@ -73,7 +73,9 @@
     "EM57.MI",
     "IBCI.MI",
     "ERNE.MI",
-    "EPRA.MI"
+    "EPRA.MI",
+    "SPYL.DE",
+    "ITWN.MI"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",

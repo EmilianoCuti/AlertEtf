@@ -10,6 +10,7 @@ Cap massimo: 10 titoli. Aggiornata su richiesta dell'utente.
 | 3 | IBTS.MI | iShares $ Treasury Bond 1-3yr UCITS ETF USD (Dist) | 2026-10-31 |
 | 4 | AGGH.MI | iShares Core Global Aggregate Bond UCITS ETF EUR Hedged (Acc) | 2026-10-31 |
 | 5 | IBCI.MI | iShares € Inflation Linked Govt Bond UCITS ETF EUR (Acc) | 2026-10-31 |
+| 6 | SPYL.DE | State Street SPDR S&P 500 UCITS ETF USD Accumulation UnHedged | 2026-10-31 |
 
 ## Note
 - CAPE.MI: trend rialzista, RSI 75 (ipercomprato), zona acquisto 652,93-656,15 EUR, zona vendita 684,95-688,17 EUR. Min YTD 557,40 (07/01/2026), min 6M 629,10 (02/10/2026).
@@ -17,3 +18,4 @@ Cap massimo: 10 titoli. Aggiornata su richiesta dell'utente.
 - IBTS.MI: trend rialzista, RSI 68 (forte), zona acquisto 111,39-111,72 EUR, zona vendita 113,10-113,43 EUR. Min YTD 107,71 (17/04/2026), min 6M 108,13 (11/05/2026).
 - AGGH.MI: trend ribassista, RSI 64 (forte), zona acquisto 4,81-4,83 EUR, zona vendita 4,90-4,91 EUR. Min YTD 4,78 (01/10/2026), min 6M 4,78 (01/10/2026).
 - IBCI.MI: trend ribassista, RSI 48 (neutro), zona acquisto 228,00-228,91 EUR, zona vendita 229,93-230,84 EUR. Min YTD 227,33 (02/10/2026), min 6M 227,33 (02/10/2026).
+- SPYL.DE: trend rialzista, RSI 45 (neutro), zona acquisto 16,80-16,91 EUR, zona vendita 16,80-16,91 EUR. Min YTD 13,68 (30/03/2026), min 6M 15,16 (04/05/2026). Quotato su Xetra (non Milano).
