@@ -71,7 +71,9 @@
     "4BRZ.MI",
     "IBTS.MI",
     "EM57.MI",
-    "IBCI.MI"
+    "IBCI.MI",
+    "ERNE.MI",
+    "EPRA.MI"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",
