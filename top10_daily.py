@@ -3,7 +3,9 @@
 import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(r"D:\AlertEtf")
+if str(BASE) not in sys.path:
+    sys.path.insert(0, str(BASE))
 sys.path.insert(0, str(BASE))
 import alrtetf as A
 
