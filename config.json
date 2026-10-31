@@ -57,7 +57,21 @@
     "XFVT.MI",
     "GRC.MI",
     "IBCJ.DE",
-    "ESPY.MI"
+    "ESPY.MI",
+    "XMKA.DE",
+    "CAPE.MI",
+    "CEM.PA",
+    "XLVS.MI",
+    "CSEMUS.MI",
+    "ZPRS.DE",
+    "JPNK.PA",
+    "SXLV.MI",
+    "ESIF.DE",
+    "GDX.MI",
+    "4BRZ.MI",
+    "IBTS.MI",
+    "EM57.MI",
+    "IBCI.MI"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",

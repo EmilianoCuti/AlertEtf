@@ -57,7 +57,7 @@ DEFAULT_CONFIG = {
              "BUG.MI", "QNTM.MI", "IS20.DE", "IB1T.DE", "IUSS.DE", "ETHW.AS",
              "BRNT.L", "KOID.MI", "DIVW.MI", "PCOM.MI", "EEAS.DE", "BTC.MI",
              "NUCL.MI", "2B7A.DE", "COPA.MI", "4GLD.DE", "SBIO.MI", "ASWC.DE",
-             "VEUR.MI", "CSSPX.MI", "SJPA.MI", "NDIA.MI", "IEMB.MI", "IHYG.MI", "XFVT.MI", "GRC.MI", "IBCJ.DE", "ESPY.MI"],
+             "VEUR.MI", "CSSPX.MI", "SJPA.MI", "NDIA.MI", "IEMB.MI", "IHYG.MI", "XFVT.MI", "GRC.MI", "IBCJ.DE", "ESPY.MI", "XMKA.DE", "CAPE.MI", "CEM.PA", "XLVS.MI", "CSEMUS.MI", "ZPRS.DE", "JPNK.PA", "SXLV.MI", "ESIF.DE", "GDX.MI", "4BRZ.MI", "IBTS.MI", "EM57.MI", "IBCI.MI"],
     "email": {
         "smtp_host": "smtp.gmail.com",
         "smtp_port": 465,
@@ -626,11 +626,14 @@ def check_and_notify(cfg, tickers, state, json_out=False):
 def main():
     load_env()
     p = argparse.ArgumentParser(description="AlrtEtf - monitor ETF con alert WhatsApp + email")
-    p.add_argument("cmd", choices=["analyze", "once", "watch", "outbox", "mark-sent",
-                                   "test-alert", "test-email", "add", "remove", "list",
-                                   "doctor"])
+    p.add_argument("cmd", nargs="?", default="watch",
+                   choices=["analyze", "once", "watch", "outbox", "mark-sent",
+                            "test-alert", "test-email", "add", "remove", "list",
+                            "doctor"])
     p.add_argument("tickers", nargs="*")
     p.add_argument("--json", action="store_true", help="output in formato JSON")
+    p.add_argument("--interval", type=int, default=None,
+                   help="intervallo in minuti per la modalita watch (default: config)")
     args = p.parse_args()
     cfg = load_config()
 
@@ -726,15 +729,25 @@ def main():
     elif args.cmd == "once":
         check_and_notify(cfg, tickers, load_state(), json_out=args.json)
     elif args.cmd == "watch":
-        interval = cfg.get("check_interval_minutes", 30) * 60
-        print(f"Monitoraggio di {', '.join(tickers)} ogni {interval // 60} min. Ctrl+C per uscire.")
-        state = load_state()
+        interval_min = args.interval if args.interval is not None else cfg.get("check_interval_minutes", 30)
+        interval = interval_min * 60
+        print(f"Monitoraggio di {len(tickers)} ETF ogni {interval_min} min. Ctrl+C per uscire.", flush=True)
+        cycle = 0
         try:
             while True:
-                check_and_notify(cfg, tickers, state, json_out=args.json)
+                cycle += 1
+                cfg = load_config()
+                tickers = [t.upper() for t in args.tickers] or cfg.get("etfs", [])
+                state = load_state()
+                print(f"\n=== Ciclo {cycle} - {datetime.now():%Y-%m-%d %H:%M:%S} ===", flush=True)
+                try:
+                    check_and_notify(cfg, tickers, state, json_out=args.json)
+                except Exception as ex:
+                    print(f"[watch] errore nel ciclo: {ex}", flush=True)
+                print(f"[watch] prossima scansione tra {interval_min} min.", flush=True)
                 time.sleep(interval)
         except KeyboardInterrupt:
-            print("\nInterrotto.")
+            print("\nInterrotto.", flush=True)
 
 
 if __name__ == "__main__":
