@@ -79,7 +79,9 @@
     "EMLC.MI",
     "IEAC.MI",
     "ITPS.MI",
-    "EWSA.AS"
+    "EWSA.AS",
+    "WRDSC.MI",
+    "CCUSAS.MI"
   ],
   "email": {
     "smtp_host": "smtp.gmail.com",
