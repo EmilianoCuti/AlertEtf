@@ -24,9 +24,9 @@ def main():
             print(f"Trend: {a['trend']} | RSI(14): {a['rsi']:.0f} | ATR: {A.fmt(a['atr'])}")
             print(f"SMA50: {A.fmt(a['sma50'])} | SMA200: {A.fmt(a['sma200'])}")
             print(f"Supporto: {A.fmt(a['support'])} | Resistenza: {A.fmt(a['resistance'])}")
-            print(f"Zona acquisto: {A.fmt(a['buy'][0])}-{A.fmt(a['buy'][1])}")
-            print(f"Zona vendita: {A.fmt(a['sell'][0])}-{A.fmt(a['sell'][1])}")
-            print(f"Min YTD: {A.fmt(a['ytd_min'])} ({a['ytd_date']}) | Min 6M: {A.fmt(a['six_min'])} ({a['six_date']})")
+            print(f"Zona acquisto tecnica: {A.fmt(a['buy'][0])}-{A.fmt(a['buy'][1])}")
+            print(f"Zona vendita tecnica: {A.fmt(a['sell'][0])}-{A.fmt(a['sell'][1])}")
+            print(f"Minimi: YTD {A.fmt(a['ytd_min'])} ({a['ytd_date']}) | 6M {A.fmt(a['six_min'])} ({a['six_date']})")
         except Exception as ex:
             print(f"--- {t} ---")
             print(f"ERRORE: {ex}")
