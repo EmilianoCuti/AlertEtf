@@ -26,7 +26,8 @@ def main():
             print(f"Supporto: {A.fmt(a['support'])} | Resistenza: {A.fmt(a['resistance'])}")
             print(f"Zona acquisto tecnica: {A.fmt(a['buy'][0])}-{A.fmt(a['buy'][1])}")
             print(f"Zona vendita tecnica: {A.fmt(a['sell'][0])}-{A.fmt(a['sell'][1])}")
-            print(f"Minimi: YTD {A.fmt(a['ytd_min'])} ({a['ytd_date']}) | 6M {A.fmt(a['six_min'])} ({a['six_date']})")
+            print(f"Min YTD: {A.fmt(a['ytd_min'])} ({a['ytd_date']}) | Min 6M: {A.fmt(a['six_min'])} ({a['six_date']})")
+            print(f"Distanza dal minimo assoluto (YTD): {((a['price'] / a['ytd_min'] - 1) * 100):+.2f}%")
         except Exception as ex:
             print(f"--- {t} ---")
             print(f"ERRORE: {ex}")
