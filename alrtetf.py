@@ -64,7 +64,13 @@ DEFAULT_CONFIG = {
         "to": "tua-email@example.com"
     },
     "whatsapp": {
-        "to": WA_GROUP_DEFAULT
+        "to": WA_GROUP_DEFAULT,
+        "groups": {
+            "urgent": "120363430631427807@g.us",
+            "sell": "120363414769066340@g.us",
+            "buy": "120363431253706197@g.us",
+            "top10": "120363430097651361@g.us",
+        },
     },
     "urgent_tolerance_pct": 0.3,
     "alert_cooldown_pct": 0.5,
@@ -243,10 +249,24 @@ def evaluate(a, tol_pct, move_pct=4.0):
     if a.get("day_low") is not None:
         low = min(low, a["day_low"])
     signals = []
-    if a["ytd_prev"] is not None and low <= a["ytd_prev"] * tol:
-        signals.append(("urgent", "raggiungimento del minimo da inizio anno (YTD)"))
-    if a["six_prev"] is not None and low <= a["six_prev"] * tol:
-        signals.append(("urgent", "raggiungimento del minimo degli ultimi 6 mesi"))
+    # Acquisto urgente: solo per il minimo più basso (il minimo assoluto tra YTD e 6M)
+    min_prev = None
+    min_label = None
+    if a["ytd_prev"] is not None and a["six_prev"] is not None:
+        if a["ytd_prev"] <= a["six_prev"]:
+            min_prev = a["ytd_prev"]
+            min_label = "raggiungimento del minimo da inizio anno (YTD)"
+        else:
+            min_prev = a["six_prev"]
+            min_label = "raggiungimento del minimo degli ultimi 6 mesi"
+    elif a["ytd_prev"] is not None:
+        min_prev = a["ytd_prev"]
+        min_label = "raggiungimento del minimo da inizio anno (YTD)"
+    elif a["six_prev"] is not None:
+        min_prev = a["six_prev"]
+        min_label = "raggiungimento del minimo degli ultimi 6 mesi"
+    if min_prev is not None and low <= min_prev * tol:
+        signals.append(("urgent", min_label))
     if a["price"] <= a["buy"][1] * tol:
         signals.append(("entry", "raggiungimento della zona d'ingresso tecnica"))
     if a["price"] >= a["sell"][0] / tol:
@@ -437,7 +457,10 @@ def deliver(cfg, ticker, kind, subject, body):
     return ("queued", queue_alert(cfg, ticker, kind, subject, body))
 
 
-def get_wa_group(cfg):
+def get_wa_group(cfg, category=None):
+    groups = (cfg.get("whatsapp", {}) or {}).get("groups", {}) or {}
+    if category and category in groups and groups[category]:
+        return groups[category]
     return (cfg.get("whatsapp", {}) or {}).get("to") or WA_GROUP_DEFAULT
 
 
@@ -484,7 +507,8 @@ def check_and_notify(cfg, tickers, state, json_out=False):
     fired = []
     wa_todo = []
     ticker_data = {}
-    wa_group = get_wa_group(cfg)
+    # Mappatura kind -> categoria di gruppo WhatsApp
+    KIND_TO_CATEGORY = {"urgent": "urgent", "entry": "buy", "move": "buy", "sell": "sell"}
     for t in tickers:
         try:
             a = analyze(t)
@@ -594,29 +618,41 @@ def check_and_notify(cfg, tickers, state, json_out=False):
                    "entry": "ZONA: INGRESSO TECNICO",
                    "move": "ZONA: VARIAZIONE GIORNALIERA",
                    "sell": "ZONA: VENDITA"}
+    wa_by_group = {}
     for t, info in ticker_data.items():
         sent = info.get("sent", [])
         if not sent:
             continue
         a = info["a"]
         signals = info["signals"]
-        ordered = sorted(sent, key=lambda k: _PRIORITY.get(k, 9))
-        zone = _ZONE_LABEL[ordered[0]]
-        lines = [f"{t} — {zone}", ""]
-        for kind in ordered:
-            lines.append(SUBJECTS[kind].format(t=t))
-            lines.append(NOTES[kind])
-            reasons = "; ".join(r for k, r in signals if k == kind)
-            lines.append(f"Motivo: {reasons}")
-            lines.append("")
-        lines.append(details(a))
-        wa_todo.append("\n".join(lines))
+        # Raggruppa i kind inviati per categoria di gruppo WhatsApp
+        by_cat = {}
+        for kind in sent:
+            cat = KIND_TO_CATEGORY.get(kind, "buy")
+            by_cat.setdefault(cat, []).append(kind)
+        for cat, kinds_in_cat in by_cat.items():
+            ordered = sorted(kinds_in_cat, key=lambda k: _PRIORITY.get(k, 9))
+            zone = _ZONE_LABEL[ordered[0]]
+            lines = [f"{t} — {zone}", ""]
+            for kind in ordered:
+                lines.append(SUBJECTS[kind].format(t=t))
+                lines.append(NOTES[kind])
+                reasons = "; ".join(r for k, r in signals if k == kind)
+                lines.append(f"Motivo: {reasons}")
+                lines.append("")
+            lines.append(details(a))
+            msg = "\n".join(lines)
+            wa_by_group.setdefault(cat, []).append(msg)
 
-    if wa_todo:
-        for msg in wa_todo:
-            wa_ok = send_wa(msg, group=wa_group)
-            print(f"WhatsApp: {'inviato' if wa_ok else 'FALLITO'} -> {wa_group}")
-        print(f"Totale messaggi WhatsApp: {len(wa_todo)}")
+    if wa_by_group:
+        total = 0
+        for cat, msgs in wa_by_group.items():
+            group = get_wa_group(cfg, cat)
+            for msg in msgs:
+                wa_ok = send_wa(msg, group=group)
+                print(f"WhatsApp: {'inviato' if wa_ok else 'FALLITO'} -> {group} ({cat})")
+                total += 1
+        print(f"Totale messaggi WhatsApp: {total}")
     if json_out:
         print(json.dumps(fired, indent=2, ensure_ascii=False))
     return fired

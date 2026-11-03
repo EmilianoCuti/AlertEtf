@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 WA_CLI = r"C:\Users\emili\Tools\wacli\wacli.exe"
-GROUP = "120363428742063440@g.us"
+GROUP = "120363430097651361@g.us"  # Top10
 
 def main():
     if len(sys.argv) < 2:

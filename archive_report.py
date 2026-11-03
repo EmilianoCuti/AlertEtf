@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Archivia un report giornaliero nel master _indice.md (D:\\Archivio_Finanziario)."""
 import re
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,15 @@ def main():
     if not report_path.exists():
         print(f"File non trovato: {report_path}")
         sys.exit(1)
+    # Se il report è fuori dall'archivio (es. outbox), copialo in 03_Report
+    try:
+        report_path.resolve().relative_to(ARCHIVE.resolve())
+    except ValueError:
+        dest_dir = ARCHIVE / "03_Report"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / report_path.name
+        shutil.copy2(report_path, dest)
+        report_path = dest
     # numero progressivo
     text = INDEX.read_text(encoding="utf-8")
     nums = re.findall(r"^\|\s*(\d+)\s*\|", text, re.MULTILINE)

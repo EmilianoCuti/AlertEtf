@@ -91,7 +91,13 @@
     "to": "tua-email@example.com"
   },
   "whatsapp": {
-    "to": "120363428742063440@g.us"
+    "to": "120363428742063440@g.us",
+    "groups": {
+      "urgent": "120363430631427807@g.us",
+      "sell": "120363414769066340@g.us",
+      "buy": "120363431253706197@g.us",
+      "top10": "120363430097651361@g.us"
+    }
   },
   "urgent_tolerance_pct": 0.3,
   "alert_cooldown_pct": 0.5,
